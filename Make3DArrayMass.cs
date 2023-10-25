@@ -89,7 +89,7 @@ public class Make3DArrayMass : MonoBehaviour
                 } //Z
             } //Y
         }// X
-        Destroy(ParentObject); //Destroy the parent object
+        ParentObject.transform.localScale = new Vector3(0, 0, 0);
     }
 
     void InstantDivide() //This version will be used in engine and will instantly load all voxels
@@ -104,17 +104,12 @@ public class Make3DArrayMass : MonoBehaviour
                     Voxel = CreateVoxel(i, j, k);
 
                     ArrayMass3D[i, j, k] = Voxel; //Add Voxel to 3D array mass
-
-                    if (k > 0)
-                        VoxelLink = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i, j, k - 1].transform.position;
-                    if (j > 0)
-                        VoxelLink = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i, j - 1, k].transform.position;
-                    if (i > 0)
-                        VoxelLink = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i - 1, j, k].transform.position;
                 } //Z
             } //Y
         }// X
-        Destroy(ParentObject); //Destroy the parent object
+        ParentObject.transform.localScale = new Vector3(0, 0, 0);
+
+        Debug.Log("End of InstantDivide");
     }
 
     GameObject CreateVoxel(int i, int j, int k) //Called When Creating a new Voxel
@@ -141,32 +136,15 @@ public class Make3DArrayMass : MonoBehaviour
     }
 
     void Link() {
-        for (int i = 0; i < SectionCount.x; i++) //X
-        {
-            for (int j = 0; j < SectionCount.y; j++) //Y
-            {
-                for (int k = 0; k < SectionCount.z; k++) //Z
-                {
-                    if (k > 0)
-                        ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i, j, k - 1].transform.position + VoxelLink;
-                    if (j > 0)
-                        ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i, j - 1, k].transform.position + VoxelLink;
-                    if (i > 0)
-                        ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i - 1, j, k].transform.position + VoxelLink;
-                }
-            }
-        }
+        //----This Will Hold The Code to Link The Voxels Together----\\
     }
+    
     
     void LateUpdate()
     {
         //----------Attempt To re-link the voxels back to one object----------\\
-        //----------Currently Does not work :(----------\\
-        //----------Late Update Does Not Run???----------\\
         Debug.Log("Late Update");
         Link();
     }
     
 }
-
-
