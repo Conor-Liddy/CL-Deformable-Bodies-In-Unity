@@ -11,7 +11,7 @@ public class Make3DArrayMass : MonoBehaviour
 {
     public GameObject ParentObject; //Template game object to be replaced by soft-body
     public bool IsInstant; //Defines which creation method to use
-    public float SpawnRateInSeconds; //Defines the spawn rate hen not in instant mode
+    public float SpawnRateInSeconds; //Defines the spawn rate when not in instant mode
     public bool HasPhysics; //Defines whether the Voxels have a Rigidbody applied 
 
     public Vector3 SectionCount; //Stores the total amount of voxels
@@ -23,8 +23,10 @@ public class Make3DArrayMass : MonoBehaviour
     private Transform ParentTransform; //Transform of parent object 
     private GameObject Voxel; //This will store the voxels used in the array mass
 
-    GameObject[,,] ArrayMass3D; //This is a 3D array which will be used to store and manage the voxels 
-    private Vector3 VoxelLink; //Used to store voxel positions to link them together  
+    private GameObject[,,] ArrayMass3D; //This is a 3D array which will be used to store and manage the voxels 
+    private MeshRenderer mr = new MeshRenderer(); // Used to store the MeshRenderer of the Voxels
+    private Vector3[,,] VoxelOffset; // Stores the voxel offsets 
+    private bool OffsetsSet = false; // boolean used to check if offsets are set 
 
     void Start()
     {
@@ -35,7 +37,7 @@ public class Make3DArrayMass : MonoBehaviour
 
         if (VoxelMaterial == null) //if nothing is attatched then use the material of the object the script is linked to
         {
-            VoxelMaterial = gameObject.GetComponent<Renderer>().material; 
+            VoxelMaterial = gameObject.GetComponent<Renderer>().material;
         }
 
         //Initialize The 3DArray
@@ -43,6 +45,7 @@ public class Make3DArrayMass : MonoBehaviour
         int YVal = (int)SectionCount.y;
         int ZVal = (int)SectionCount.z;
         ArrayMass3D = new GameObject[XVal, YVal, ZVal];
+        VoxelOffset = new Vector3[XVal, YVal, ZVal];
 
         //Define the section size
         SizeOfOriginalObject = ParentObject.transform.lossyScale;
@@ -55,18 +58,21 @@ public class Make3DArrayMass : MonoBehaviour
         //Define the array start position 
         FillStartPosition = ParentObject.transform.TransformPoint(new Vector3(-0.5f, -0.5f, -0.5f))
                                 + ParentObject.transform.TransformDirection(new Vector3(SectionSize.x, SectionSize.y, SectionSize.z) / 2.0f);
-        
+
         //Get the current parent transform
         ParentTransform = new GameObject(ParentObject.name + "CubeParent").transform;
 
         //Define the render method
-        if (IsInstant) {
+        if (IsInstant)
+        {
             InstantDivide();
         }
-        else { 
+        else
+        {
             StartCoroutine(DivideIntoCubes());
         }
 
+        RenderCheck();
         Debug.Log("End of Start");
     }
 
@@ -135,16 +141,89 @@ public class Make3DArrayMass : MonoBehaviour
         return Voxel;
     }
 
-    void Link() {
-        //----This Will Hold The Code to Link The Voxels Together----\\
-    }
-    
-    
-    void LateUpdate()
+    void RenderCheck() // used to only render the outside faces of an object
     {
-        //----------Attempt To re-link the voxels back to one object----------\\
-        Debug.Log("Late Update");
+        for (int i = 0; i < SectionCount.x; i++) //X
+        {
+            for (int j = 0; j < SectionCount.y; j++) //Y
+            {
+                for (int k = 0; k < SectionCount.z; k++) //Z
+                {
+                    mr = ArrayMass3D[i, j, k].GetComponent<MeshRenderer>();
+                    //Check if the voxel is on the outside face of the object
+                    if (k != 0 && k != SectionCount.z-1 && j != 0 && j !=SectionCount.y-1 && i != 0 && i != SectionCount.x-1)
+                    {
+                        mr.enabled = false;
+                    }
+                } //Z
+            } //Y
+        }// X
+    }
+
+    void GetOffsets() // Sets the offset data for the Voxels
+    {
+        if (!OffsetsSet)
+        {
+            for (int i = 0; i < SectionCount.x; i++) //X
+            {
+                for (int j = 0; j < SectionCount.y; j++) //Y  
+                {
+                    for (int k = 0; k < SectionCount.z; k++) //Z 
+                    {
+                        if (i > 0)
+                            VoxelOffset[i, j, k] = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i - 1, j, k].transform.position;
+                        if (j > 0)
+                            VoxelOffset[i, j, k] = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i, j - 1, k].transform.position;
+                        if (k > 0)
+                            VoxelOffset[i, j, k] = ArrayMass3D[i, j, k].transform.position - ArrayMass3D[i, j, k - 1].transform.position;
+                    } //Z
+                } //Y
+            }// X
+
+            OffsetsSet = true;
+            Debug.Log("Offsets Set");
+        }
+    }
+
+    void Link() // Set the Voxels to follow each other every frame 
+    {
+        if (OffsetsSet)
+        {
+            for (int i = 0; i < SectionCount.x; i++) //X
+            {
+                for (int j = 0; j < SectionCount.y; j++) //Y  
+                {
+                    for (int k = 0; k < SectionCount.z; k++) //Z 
+                    {
+                        if (i > 0)
+                            ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i - 1, j, k].transform.position + VoxelOffset[i, j, k];
+                            //ArrayMass3D[i, j, k].transform.rotation = ArrayMass3D[i - 1, j, k].transform.rotation;
+                        if (j > 0)
+                            ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i, j - 1, k].transform.position + VoxelOffset[i, j, k];
+                           //ArrayMass3D[i, j, k].transform.rotation = ArrayMass3D[i, j - 1, k].transform.rotation;
+                        if (k > 0)
+                            ArrayMass3D[i, j, k].transform.position = ArrayMass3D[i, j, k - 1].transform.position + VoxelOffset[i, j, k];
+                            //ArrayMass3D[i, j, k].transform.rotation = ArrayMass3D[i, j, k - 1].transform.rotation;
+                    } //Z
+                } //Y
+            }// X
+        }
+    }
+
+
+
+
+
+
+
+
+      //^^^^^^^^^^^^^^^^^^\\
+     //--------------------\\
+    //---Update Functions---\\
+
+    void Update()
+    {
+        GetOffsets();
         Link();
     }
-    
 }
