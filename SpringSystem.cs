@@ -1,107 +1,64 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 
-[RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(MeshFilter))]
 
 public class SpringSystem : MonoBehaviour
 {
-    Mesh PlaneMesh;
-    MeshFilter MeshFilter;
-
-    public Vector2 PlaneSize = new Vector2(1, 1);
-    public int PlaneRes = 1;
-    public float WaveSpeed;
+//Public
+    public float WaveSpeed = 1;
     public bool SineWave;
     public bool RippleWave;
+    //Private
+    private MeshFilter MeshFilter;
+    private MeshCollider MeshCollider;
 
-    List<Vector3> Vertices;
-    List<int> Triangles;
-
-    // Start is called before the first frame update
-    void Awake()
+    private void Start()
     {
-        PlaneMesh = new Mesh();
         MeshFilter = GetComponent<MeshFilter>();
-        MeshFilter.mesh = PlaneMesh;
+        MeshCollider = GetComponent<MeshCollider>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        PlaneRes = Mathf.Clamp(PlaneRes, 1, 50);
 
-        GeneratePlane(PlaneSize, PlaneRes);
+    private void Update()
+    {
         if (SineWave)
         {
-            LeftToRightSine(Time.timeSinceLevelLoad * WaveSpeed);
+            LeftToRightSine();
         }
         if (RippleWave)
         {
-            RippleSine(Time.timeSinceLevelLoad*WaveSpeed);
+            RippleSine();
         }
+
+        MeshCollider.sharedMesh = MeshFilter.sharedMesh;
+    }
+
+    void RippleSine()
+    {
+        var mesh = MeshFilter.mesh;
+        var Vertices = mesh.vertices;
         
-        AssignMesh();
+        for (int i = 0; i < Vertices.Length; i++)
+        {
+            float elevation = Mathf.Sin((Time.time * WaveSpeed) + (Vertices[i].x + Vertices[i].z));
+            Vertices[i].y = elevation;
+        }
+       
+        mesh.vertices = Vertices;
     }
 
-    void GeneratePlane(Vector2 Size, int Res)
+    void LeftToRightSine()
     {
-        //Nodes
-        Vertices = new List<Vector3>();
-        float XPerStep = Size.x / Res;
-        float YPerStep = Size.y / Res;
+        var mesh = MeshFilter.mesh;
+        var Vertices = mesh.vertices;
 
-        for (int y = 0; y < Res + 1; y++)
+        for (int i = 0; i < Vertices.Length; i++)
         {
-            for (int x = 0; x < Res + 1; x++)
-            {
-                Vertices.Add(new Vector3(x * XPerStep, 0, y * YPerStep));
-            }
+            float elevation = Mathf.Sin((Time.time * WaveSpeed) - Vertices[i].x);
+            Vertices[i].y = elevation;
         }
 
-        //Springs
-        Triangles = new List<int>();
-        for (int row = 0; row < Res; row++)
-        {
-            for (int col = 0; col < Res; col++)
-            {
-                int i = (row*Res) + row + col;
-                Triangles.Add(i);
-                Triangles.Add(i+(Res)+1);
-                Triangles.Add(i+(Res)+2);
-
-                Triangles.Add(i);
-                Triangles.Add(i+(Res)+2);
-                Triangles.Add(i+1);
-            }
-        }
-    }
-
-    void AssignMesh()
-    {
-        PlaneMesh.Clear();
-        PlaneMesh.vertices = Vertices.ToArray();
-        PlaneMesh.triangles = Triangles.ToArray();
-    }
-
-    void LeftToRightSine(float Time)
-    {
-        for (int i = 0; i < Vertices.Count; i++)
-        {
-            Vector3 Vertex = Vertices[i];
-            Vertex.y = Mathf.Sin(Time+Vertex.x);
-            Vertices[i] = Vertex;
-        }
-    }
-
-    void RippleSine(float Time)
-    {
-        for (int i = 0; i < Vertices.Count; i++)
-        {
-            Vector3 Vertex = Vertices[i];
-            Vertex.y = Mathf.Sin(Time + (Vertex.x + Vertex.z));
-            Vertices[i] = Vertex;
-        }
+        mesh.vertices = Vertices;
     }
 }
