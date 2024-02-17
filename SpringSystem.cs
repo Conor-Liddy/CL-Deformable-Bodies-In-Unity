@@ -20,7 +20,7 @@ public class SpringSystem : MonoBehaviour
     private List<Vector3> SourceVertices;
     private Vector3[] Normals;
     private Mesh mesh;
-    private List<Quaternion> Rotations;
+    private List<Vector3> Rotations;
 
     private void Start()
     {
@@ -55,19 +55,21 @@ public class SpringSystem : MonoBehaviour
         var Vertices = meshFil.vertices;
 
         PopulateSourceVertices(); //Set Initial Values
-        SetRotations(); //Set Rotation values for each vertices
 
         //Wave Loop
         for (int i = 0; i < Vertices.Length; i++)
         {
-            float elevation = Mathf.Sin((Time.time * WaveSpeed) + (Vertices[i].x + Vertices[i].z) * PlaneRes);
-            Vector3 NewPos = new Vector3(Vertices[i].x, elevation, Vertices[i].z);
+            Vector3 CurrentNormal = Normals[i];
 
-            Vertices[i].y = (NewPos.y * WaveHeight) + SourceVertices[i].y;
+            float sineTerm = Mathf.Sin((Time.time * WaveSpeed) + (Vertices[i].x + Vertices[i].z) * PlaneRes);
+            Vector3 NewPos = SourceVertices[i] + CurrentNormal * (sineTerm * WaveHeight);
 
-            var v = (Vector3)Vertices[i] - SourceVertices[i];
+            Vertices[i] = NewPos;
 
-            v = Rotations[i] * v;
+            /*
+             * Attempt to apply a rotation to transform?
+            */ 
+             
         }
 
         meshFil.vertices = Vertices;
@@ -79,15 +81,16 @@ public class SpringSystem : MonoBehaviour
         var Vertices = meshFil.vertices;
 
         PopulateSourceVertices(); //Set Initial Values
-        SetRotations(); //Set Rotation values for each vertices
 
         //Wave Loop
         for (int i = 0; i < Vertices.Length; i++)
         {
-            float elevation = Mathf.Sin((Time.time * WaveSpeed) - Vertices[i].x * PlaneRes);
-            Vector3 NewPos = new Vector3(Vertices[i].x, elevation, Vertices[i].z);
+            Vector3 CurrentNormal = Normals[i];
 
-            Vertices[i].y = (NewPos.y * WaveHeight) + SourceVertices[i].y;
+            float sineTerm = Mathf.Sin((Time.time * WaveSpeed) - Vertices[i].x * PlaneRes);
+            Vector3 NewPos = SourceVertices[i] + CurrentNormal * (sineTerm * WaveHeight);
+
+            Vertices[i] = NewPos;
         }
 
         meshFil.vertices = Vertices;
@@ -103,12 +106,24 @@ public class SpringSystem : MonoBehaviour
             SourceVertices.Add(Vertices[i]);
         }
     }
-
-    void SetRotations()
-    {
-        for (int i = 0; i < Normals.Length; i++)
-        {
-            //Rotations.Add((Normals[i]);
-        }
-    }
 }
+
+
+/*
+ * Helpful Advice and notes:
+ * 
+ * 1.
+ * "A vertex and its normal are stored together.
+ * This means different normal, must be a different vertex.
+ * This means if you have faceted object (not smooth shaded), each corner will have more than one vertex, which will be at the same position, but have a different normal.
+ * To keep a face connected you need to move shared vertices the same amount.
+ * In your case you would probably need to aggregate all verts that are at a corner and then compute their average normal and use that for your offsetting."
+ * - Kurt-Dekker
+ *
+ * 2.
+ * Figure out how to further subdivide the mesh to help with cases such as the cube mesh which only has 2 tris on each side.
+ * Makes for janky movement and wont allow for good deformation
+ * 
+ * 
+ * must get 2 working in order to fix 1
+ */
