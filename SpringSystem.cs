@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshCollider))]
@@ -10,9 +11,11 @@ public class SpringSystem : MonoBehaviour
     //UI Elements
     public bool SineWave;
     public bool RippleWave;
+    public bool Deformable;
     public float WaveSpeed = 1;
     public float WaveHeight = 1;
     public float PlaneRes = 1;
+    public float DeformationAmmount = 1.0f;
 //Private
     //Mesh Variables
     private MeshFilter MeshFilter;
@@ -20,7 +23,6 @@ public class SpringSystem : MonoBehaviour
     private List<Vector3> SourceVertices;
     private Vector3[] Normals;
     private Mesh mesh;
-    private List<Vector3> Rotations;
 
     private void Start()
     {
@@ -35,14 +37,17 @@ public class SpringSystem : MonoBehaviour
 
     private void Update()
     {
-        //Choose Wave Type
-        if (SineWave)
+        if(!Deformable)
         {
-            LeftToRightSine();
-        }
-        if (RippleWave)
-        {
-            RippleSine();
+            //Choose Wave Type
+            if (SineWave)
+            {
+                LeftToRightSine();
+            }
+            if (RippleWave)
+            {
+                RippleSine();
+            }
         }
 
         //Update Mesh Collider
@@ -65,10 +70,6 @@ public class SpringSystem : MonoBehaviour
             Vector3 NewPos = SourceVertices[i] + CurrentNormal * (sineTerm * WaveHeight);
 
             Vertices[i] = NewPos;
-
-            /*
-             * Attempt to apply a rotation to transform?
-            */ 
              
         }
 
@@ -106,7 +107,60 @@ public class SpringSystem : MonoBehaviour
             SourceVertices.Add(Vertices[i]);
         }
     }
+
+    // Detect collisions on deformable object
+    void OnCollisionEnter(Collision collision)
+    {
+        Vector3 HitVert = NearestVertex(collision.transform.position); //Get closest Vertex to colliding object
+        
+        var meshFil = MeshFilter.mesh;
+        var Vertices = meshFil.vertices;
+
+        PopulateSourceVertices();
+
+        for (int i = 0; i < Vertices.Length; i++)
+        {
+
+            Vector3 CurrentNormal = Normals[i];
+
+            if (Vertices[i] == HitVert) //find matching vertex from list to the one which was hit
+            {
+                    Vector3 NewPos = SourceVertices[i] + CurrentNormal * (DeformationAmmount - (DeformationAmmount * 2));
+                    Vertices[i] = NewPos;
+            }
+                
+        }
+
+        meshFil.vertices = Vertices;
+    }
+
+    //returns the nearest point to 
+    public Vector3 NearestVertex(Vector3 point)
+    {
+        // convert point to local space
+        point = transform.InverseTransformPoint(point);
+
+        float minDistanceSqr = Mathf.Infinity;
+        Vector3 nearestVertex = Vector3.zero;
+
+        // scan all vertices to find nearest
+        foreach (Vector3 vertex in mesh.vertices)
+        {
+            Vector3 diff = point - vertex;
+            float distSqr = diff.sqrMagnitude;
+
+            if (distSqr < minDistanceSqr)
+            {
+                minDistanceSqr = distSqr;
+                nearestVertex = vertex;
+            }
+        }
+        
+        return nearestVertex;
+    }
 }
+
+
 
 
 /*
@@ -126,4 +180,9 @@ public class SpringSystem : MonoBehaviour
  * 
  * 
  * must get 2 working in order to fix 1
+ * Both one and 2 are make it best features
+ * 
+ * 
+ * 
+ * Current State: Working!
  */
