@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -11,10 +12,11 @@ public class SpringSystem : MonoBehaviour
     //UI Elements
     public bool SineWave;
     public bool RippleWave;
-    public bool Deformable;
     public float WaveSpeed = 1;
     public float WaveHeight = 1;
     public float PlaneRes = 1;
+    public bool Deformable;
+    public bool PhysicsBased;
     public float DeformationAmmount = 1.0f;
 //Private
     //Mesh Variables
@@ -111,7 +113,21 @@ public class SpringSystem : MonoBehaviour
     // Detect collisions on deformable object
     void OnCollisionEnter(Collision collision)
     {
+        //Get Data From Colliding Object
         Vector3 HitVert = NearestVertex(collision.transform.position); //Get closest Vertex to colliding object
+            // Calculate overall speed
+        float ColliderSpeed = Mathf.Sqrt(Mathf.Pow((collision.relativeVelocity.x), 2) + Mathf.Pow((collision.relativeVelocity.y), 2) + Mathf.Pow((collision.relativeVelocity.z), 2)); 
+        float ColliderMass = collision.rigidbody.mass; // Colliding object mass
+
+        //Dimentions used for calculations on planes only
+        float F = ColliderMass * ColliderSpeed;
+        float L = transform.localScale.y;
+        float A = transform.localScale.x * transform.localScale.z;
+
+        if (PhysicsBased)
+        {
+            DeformationAmmount = (F / A) / (2 / L); // Planar Deformation Formula Found in "Millington Game physics engine development"
+        }
         
         var meshFil = MeshFilter.mesh;
         var Vertices = meshFil.vertices;
