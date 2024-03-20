@@ -2,8 +2,8 @@ Deformable Body Physics for Unity 3D
 by Conor Liddy
 
 Contents:
-1. Make3DArrayMass.cs <----\__ Both files needed
-2. VoxelCollider.cs   <----/
+1. Make3DArrayMass.cs 
+2. VoxelCollider.cs  
 3. SpringPlaneDemo.cs
 4. SpringSystem.cs
 
